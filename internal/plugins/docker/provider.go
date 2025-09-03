@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jonas-jonas/mah/internal/config"
@@ -137,7 +138,7 @@ func (p *Provider) Status(serviceName string) (*pkg.ServiceStatus, error) {
 		Status:    status,
 		Replicas:  service.Replicas,
 		Health:    health,
-		Ports:     service.Ports,
+		Ports:     extractPortNumbers(service.Ports),
 		Variables: service.Environment,
 	}, nil
 }
@@ -351,4 +352,23 @@ func (p *Provider) generateComposeFile(serviceConfig *pkg.ServiceConfig) (string
 	}
 
 	return compose.ToYAML(), nil
+}
+
+// extractPortNumbers converts Docker port mappings (e.g., "8080:8080", "53:53/tcp") to port numbers
+func extractPortNumbers(portMappings []string) []int {
+	var ports []int
+	for _, mapping := range portMappings {
+		// Remove protocol suffix if present (e.g., "/tcp", "/udp")
+		mapping = strings.Split(mapping, "/")[0]
+		
+		// Split by colon to get host:container port mapping
+		parts := strings.Split(mapping, ":")
+		if len(parts) >= 1 {
+			// Use the first part (host port) for the exposed port
+			if port, err := strconv.Atoi(parts[0]); err == nil {
+				ports = append(ports, port)
+			}
+		}
+	}
+	return ports
 }

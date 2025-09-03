@@ -36,11 +36,12 @@ type Service struct {
 	Domains     map[string]string `yaml:"domains"`
 	Public      bool              `yaml:"public"`
 	Internal    bool              `yaml:"internal"`
-	Ports       []int             `yaml:"ports"`
+	Ports       []string          `yaml:"ports"`
 	Environment map[string]string `yaml:"environment"`
 	Volumes     []string          `yaml:"volumes"`
 	Networks    []string          `yaml:"networks"`
 	Depends     []string          `yaml:"depends_on"`
+	Command     []string          `yaml:"command"`
 	Auth        *AuthConfig       `yaml:"auth"`
 	Labels      map[string]string `yaml:"labels"`
 	Replicas    int               `yaml:"replicas,omitempty"`

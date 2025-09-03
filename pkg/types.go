@@ -169,11 +169,12 @@ type ServiceConfig struct {
 	Domains     map[string]string `json:"domains"`
 	Public      bool              `json:"public"`
 	Internal    bool              `json:"internal"`
-	Ports       []int             `json:"ports"`
+	Ports       []string          `json:"ports"`
 	Environment map[string]string `json:"environment"`
 	Volumes     []string          `json:"volumes"`
 	Networks    []string          `json:"networks"`
 	Depends     []string          `json:"depends_on"`
+	Command     []string          `json:"command"`
 	Labels      map[string]string `json:"labels"`
 	Replicas    int               `json:"replicas"`
 }
