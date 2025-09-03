@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -91,11 +92,57 @@ var serviceLogsCmd = &cobra.Command{
 	},
 }
 
+var serviceStopCmd = &cobra.Command{
+	Use:   "stop <service-name>",
+	Short: "Stop a service",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return stopService(args[0])
+	},
+}
+
+var serviceRemoveCmd = &cobra.Command{
+	Use:   "remove <service-name>",
+	Short: "Remove a service (stop and delete)",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return removeService(args[0])
+	},
+}
+
+var serviceRestartCmd = &cobra.Command{
+	Use:   "restart <service-name>",
+	Short: "Restart a service",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return restartService(args[0])
+	},
+}
+
+var serviceScaleCmd = &cobra.Command{
+	Use:   "scale <service-name> <replicas>",
+	Short: "Scale a service to specified number of replicas",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		replicas := 1
+		if len(args) > 1 {
+			if r, err := fmt.Sscanf(args[1], "%d", &replicas); err != nil || r != 1 {
+				return fmt.Errorf("invalid replica count: %s", args[1])
+			}
+		}
+		return scaleService(args[0], replicas)
+	},
+}
+
 func init() {
 	serviceCmd.AddCommand(serviceListCmd)
 	serviceCmd.AddCommand(serviceDeployCmd)
 	serviceCmd.AddCommand(serviceStatusCmd)
 	serviceCmd.AddCommand(serviceLogsCmd)
+	serviceCmd.AddCommand(serviceStopCmd)
+	serviceCmd.AddCommand(serviceRemoveCmd)
+	serviceCmd.AddCommand(serviceRestartCmd)
+	serviceCmd.AddCommand(serviceScaleCmd)
 	
 	// Add flags
 	serviceLogsCmd.Flags().BoolP("follow", "f", false, "Follow log output")
@@ -346,5 +393,173 @@ func showServiceLogs(serviceName string, follow bool) error {
 		fmt.Println(logLine)
 	}
 
+	return nil
+}
+
+// stopService stops a service
+func stopService(serviceName string) error {
+	config := configManager.GetConfig()
+	if config == nil {
+		return fmt.Errorf("no configuration loaded")
+	}
+
+	service := config.Services[serviceName]
+	if service == nil {
+		return fmt.Errorf("service '%s' not found in configuration", serviceName)
+	}
+
+	// Create server instances
+	servers := make(map[string]pkg.Server)
+	factory := server.NewFactory()
+
+	for _, serverName := range service.Servers {
+		serverConfig := config.Servers[serverName]
+		if serverConfig == nil {
+			continue
+		}
+
+		srv, err := factory.CreateServer(serverName, serverConfig)
+		if err != nil {
+			continue
+		}
+		defer srv.Disconnect()
+
+		servers[serverName] = srv
+	}
+
+	if len(servers) == 0 {
+		return fmt.Errorf("no accessible servers found for service '%s'", serviceName)
+	}
+
+	fmt.Printf("🛑 Stopping service '%s'...\n", serviceName)
+	
+	for _, serverName := range service.Servers {
+		if server, exists := servers[serverName]; exists {
+			ctx := context.Background()
+			cmd := fmt.Sprintf("sh -c 'cd /opt/mah/services/%s && docker compose stop'", serviceName)
+			result, err := server.Execute(ctx, cmd, true)
+			if err != nil {
+				fmt.Printf("⚠️  Warning: failed to stop service on server '%s': %v\n", serverName, err)
+				continue
+			}
+			if result.ExitCode != 0 {
+				fmt.Printf("⚠️  Warning: stop command had issues on server '%s': %s\n", serverName, result.Stderr)
+			} else {
+				fmt.Printf("✅ Service '%s' stopped on server '%s'\n", serviceName, serverName)
+			}
+		}
+	}
+
+	return nil
+}
+
+// removeService removes a service completely
+func removeService(serviceName string) error {
+	config := configManager.GetConfig()
+	if config == nil {
+		return fmt.Errorf("no configuration loaded")
+	}
+
+	service := config.Services[serviceName]
+	if service == nil {
+		return fmt.Errorf("service '%s' not found in configuration", serviceName)
+	}
+
+	// Create server instances
+	servers := make(map[string]pkg.Server)
+	factory := server.NewFactory()
+
+	for _, serverName := range service.Servers {
+		serverConfig := config.Servers[serverName]
+		if serverConfig == nil {
+			continue
+		}
+
+		srv, err := factory.CreateServer(serverName, serverConfig)
+		if err != nil {
+			continue
+		}
+		defer srv.Disconnect()
+
+		servers[serverName] = srv
+	}
+
+	if len(servers) == 0 {
+		return fmt.Errorf("no accessible servers found for service '%s'", serviceName)
+	}
+
+	// Remove service using Docker provider
+	dockerProvider := docker.NewProvider(servers, config)
+	
+	fmt.Printf("🗑️  Removing service '%s'...\n", serviceName)
+	
+	err := dockerProvider.Remove(serviceName)
+	if err != nil {
+		return fmt.Errorf("failed to remove service: %w", err)
+	}
+
+	color.Green("✅ Service '%s' removed successfully!", serviceName)
+	return nil
+}
+
+// restartService restarts a service
+func restartService(serviceName string) error {
+	fmt.Printf("🔄 Restarting service '%s'...\n", serviceName)
+	
+	// Stop the service first
+	if err := stopService(serviceName); err != nil {
+		fmt.Printf("⚠️  Warning during stop: %v\n", err)
+	}
+	
+	// Then redeploy it
+	return deployService(serviceName)
+}
+
+// scaleService scales a service to specified replicas
+func scaleService(serviceName string, replicas int) error {
+	config := configManager.GetConfig()
+	if config == nil {
+		return fmt.Errorf("no configuration loaded")
+	}
+
+	service := config.Services[serviceName]
+	if service == nil {
+		return fmt.Errorf("service '%s' not found in configuration", serviceName)
+	}
+
+	// Create server instances
+	servers := make(map[string]pkg.Server)
+	factory := server.NewFactory()
+
+	for _, serverName := range service.Servers {
+		serverConfig := config.Servers[serverName]
+		if serverConfig == nil {
+			continue
+		}
+
+		srv, err := factory.CreateServer(serverName, serverConfig)
+		if err != nil {
+			continue
+		}
+		defer srv.Disconnect()
+
+		servers[serverName] = srv
+	}
+
+	if len(servers) == 0 {
+		return fmt.Errorf("no accessible servers found for service '%s'", serviceName)
+	}
+
+	// Scale service using Docker provider
+	dockerProvider := docker.NewProvider(servers, config)
+	
+	fmt.Printf("📈 Scaling service '%s' to %d replicas...\n", serviceName, replicas)
+	
+	err := dockerProvider.Scale(serviceName, replicas)
+	if err != nil {
+		return fmt.Errorf("failed to scale service: %w", err)
+	}
+
+	color.Green("✅ Service '%s' scaled to %d replicas successfully!", serviceName, replicas)
 	return nil
 }
