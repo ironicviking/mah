@@ -348,6 +348,22 @@ func (p *Provider) generateComposeFile(serviceConfig *pkg.ServiceConfig) (string
 		}
 	}
 
+	// Generate volumes for named volumes
+	if len(serviceConfig.Volumes) > 0 {
+		compose.Volumes = make(map[string]ComposeVolume)
+		for _, volumeMapping := range serviceConfig.Volumes {
+			// Check if this is a named volume (format: "volume_name:/path")
+			parts := strings.Split(volumeMapping, ":")
+			if len(parts) >= 2 {
+				volumeName := parts[0]
+				// Only add if it doesn't look like a host path (doesn't start with / or . or ~)
+				if !strings.HasPrefix(volumeName, "/") && !strings.HasPrefix(volumeName, ".") && !strings.HasPrefix(volumeName, "~") {
+					compose.Volumes[volumeName] = ComposeVolume{}
+				}
+			}
+		}
+	}
+
 	return compose.ToYAML(), nil
 }
 
