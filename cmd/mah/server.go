@@ -90,6 +90,15 @@ func initializeServer(serverName string) error {
 
 	fmt.Printf("📡 Detected distribution: %s\n", serverConfig.Distro)
 
+	// Connect to server first
+	fmt.Print("🔗 Connecting to server... ")
+	err = srv.Connect(ctx)
+	if err != nil {
+		color.Red("FAILED")
+		return fmt.Errorf("failed to connect to server: %w", err)
+	}
+	color.Green("OK")
+
 	// Perform health check
 	fmt.Print("🔍 Performing health check... ")
 	err = srv.HealthCheck(ctx)

@@ -57,7 +57,11 @@ func (s *SSHServer) Connect(ctx context.Context) error {
 
 	signer, err := ssh.ParsePrivateKey(privateKey)
 	if err != nil {
-		return fmt.Errorf("failed to parse SSH private key: %w", err)
+		// Check if key needs a passphrase
+		if strings.Contains(err.Error(), "cannot decode encrypted private keys") {
+			return fmt.Errorf("SSH private key requires a passphrase (not yet supported): %w", err)
+		}
+		return fmt.Errorf("failed to parse SSH private key at %s: %w", keyPath, err)
 	}
 
 	// Create SSH client config
