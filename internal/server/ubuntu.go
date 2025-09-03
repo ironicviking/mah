@@ -60,7 +60,7 @@ func (u *UbuntuOperations) InstallDocker(ctx context.Context) error {
 	}
 	
 	// Then, install it with proper sudo permissions
-	result, err = u.server.Execute(ctx, "gpg --dearmor < /tmp/docker.gpg > /usr/share/keyrings/docker-archive-keyring.gpg", true)
+	result, err = u.server.Execute(ctx, "gpg --dearmor < /tmp/docker.gpg | sudo tee /usr/share/keyrings/docker-archive-keyring.gpg > /dev/null", false)
 	if err != nil {
 		return fmt.Errorf("failed to install Docker GPG key: %w", err)
 	}
