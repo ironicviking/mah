@@ -288,12 +288,15 @@ sed -i 's/password: "actual-password"/password: "${MYSQL_PASSWORD}"/' mah.yaml
 ### To Encrypted Secrets
 
 ```bash
-# Initialize and populate secrets
-mah config secrets init
+# Option 1: Direct password
+mah config secrets init -p "your-32-character-key"
 vim ~/.mah/secrets.yaml
+mah config secrets encrypt -p "your-32-character-key"
 
-# Encrypt
+# Option 2: Environment variable
 export MAH_MASTER_KEY="your-32-character-key"
+mah config secrets init --auto-encrypt
+vim ~/.mah/secrets.yaml
 mah config secrets encrypt
 ```
 

@@ -212,10 +212,11 @@ mah config validate               # Validate configuration
 mah config show                   # Show current config
 
 # Secret Management
-mah config secrets init           # Initialize secrets management
-mah config secrets encrypt        # Encrypt secrets file
-mah config secrets decrypt        # View secrets (masked)
-mah config secrets sanitize       # Create git-safe template
+mah config secrets init                    # Initialize secrets management
+mah config secrets init -p "team-key"     # Initialize and encrypt immediately  
+mah config secrets encrypt -p "team-key"  # Encrypt with password
+mah config secrets decrypt -p "team-key"  # View secrets (masked)
+mah config secrets sanitize               # Create git-safe template
 ```
 
 ## 🔌 Plugins

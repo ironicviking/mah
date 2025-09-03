@@ -20,7 +20,16 @@ You can encrypt secrets, store them in a separate file, and safely commit to git
 var secretsInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize secrets management",
+	Long: `Initialize secrets management with optional immediate encryption.
+
+Examples:
+  mah config secrets init                    # Create template only
+  mah config secrets init -p "your-32-char-key"  # Create and encrypt immediately
+  mah config secrets init --auto-encrypt    # Use MAH_MASTER_KEY env var`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		password, _ := cmd.Flags().GetString("password")
+		autoEncrypt, _ := cmd.Flags().GetBool("auto-encrypt")
+		
 		// Get MAH directory
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -44,12 +53,48 @@ var secretsInitCmd = &cobra.Command{
 		fmt.Printf("%s Created secrets template: %s\n", 
 			color.GreenString("✓"), 
 			color.CyanString(secretsFile))
-		fmt.Println()
-		fmt.Printf("%s %s\n", color.YellowString("⚠️"), "Security recommendations:")
-		fmt.Println("  1. Edit secrets.yaml with your actual values")
-		fmt.Println("  2. Add secrets.yaml to .gitignore (recommended)")
-		fmt.Println("  3. Or encrypt with: mah config secrets encrypt")
-		fmt.Println("  4. Use environment variables in CI/CD pipelines")
+		
+		// If password provided or auto-encrypt requested, encrypt immediately
+		if password != "" || autoEncrypt {
+			fmt.Println()
+			fmt.Printf("%s Encrypting secrets template...\n", color.CyanString("🔐"))
+			
+			// Set master key temporarily if password provided
+			if password != "" {
+				if err := os.Setenv("MAH_MASTER_KEY", password); err != nil {
+					return fmt.Errorf("failed to set master key: %w", err)
+				}
+			} else if autoEncrypt && os.Getenv("MAH_MASTER_KEY") == "" {
+				return fmt.Errorf("MAH_MASTER_KEY environment variable not set (required for --auto-encrypt)")
+			}
+			
+			// Load and encrypt the template secrets
+			secrets, err := secretManager.LoadSecrets()
+			if err != nil {
+				return fmt.Errorf("failed to load template secrets: %w", err)
+			}
+			
+			if err := secretManager.SaveSecrets(secrets, true, "env"); err != nil {
+				return fmt.Errorf("failed to encrypt secrets: %w", err)
+			}
+			
+			fmt.Printf("%s Secrets encrypted and ready for team use!\n", color.GreenString("✓"))
+			fmt.Println()
+			fmt.Printf("%s %s\n", color.GreenString("✓"), "Next steps:")
+			fmt.Println("  1. Edit the encrypted secrets file with actual values")
+			fmt.Println("  2. Re-encrypt: mah config secrets encrypt")
+			fmt.Println("  3. Commit to git (encrypted file is safe!)")
+			if password != "" {
+				fmt.Printf("  4. Share the encryption key with your team: %s\n", color.CyanString(password))
+			}
+		} else {
+			fmt.Println()
+			fmt.Printf("%s %s\n", color.YellowString("⚠️"), "Security recommendations:")
+			fmt.Println("  1. Edit secrets.yaml with your actual values")
+			fmt.Println("  2. Encrypt with: mah config secrets encrypt -p \"your-key\"")
+			fmt.Println("  3. Or add secrets.yaml to .gitignore")
+			fmt.Println("  4. Use environment variables in CI/CD pipelines")
+		}
 		
 		return nil
 	},
@@ -59,8 +104,14 @@ var secretsEncryptCmd = &cobra.Command{
 	Use:   "encrypt",
 	Short: "Encrypt secrets in secrets.yaml",
 	Long: `Encrypt all secrets in the secrets.yaml file using AES-256 encryption.
-The encrypted file can be safely committed to version control.`,
+The encrypted file can be safely committed to version control.
+
+Examples:
+  mah config secrets encrypt                    # Use MAH_MASTER_KEY env var
+  mah config secrets encrypt -p "your-key"     # Use provided key directly`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		password, _ := cmd.Flags().GetString("password")
+		
 		// Get MAH directory
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -73,6 +124,15 @@ The encrypted file can be safely committed to version control.`,
 		// Check if secrets file exists
 		if _, err := os.Stat(secretsFile); os.IsNotExist(err) {
 			return fmt.Errorf("secrets file not found. Run 'mah config secrets init' first")
+		}
+		
+		// Set master key temporarily if password provided
+		if password != "" {
+			if err := os.Setenv("MAH_MASTER_KEY", password); err != nil {
+				return fmt.Errorf("failed to set master key: %w", err)
+			}
+		} else if os.Getenv("MAH_MASTER_KEY") == "" {
+			return fmt.Errorf("encryption key required. Use -p flag or set MAH_MASTER_KEY environment variable")
 		}
 		
 		// Create secret manager
@@ -91,14 +151,10 @@ The encrypted file can be safely committed to version control.`,
 			return fmt.Errorf("no secrets found to encrypt")
 		}
 		
-		// Ask for key source
-		keySource := "env" // Default to environment variable
-		fmt.Printf("%s Encrypting %d secrets...\n", color.CyanString("🔐"), len(secrets))
-		fmt.Println("Using MAH_MASTER_KEY environment variable for encryption key")
-		fmt.Println("Set MAH_MASTER_KEY before running this command")
+		fmt.Printf("%s Encrypting %d secrets with AES-256...\n", color.CyanString("🔐"), len(secrets))
 		
 		// Save encrypted secrets
-		if err := secretManager.SaveSecrets(secrets, true, keySource); err != nil {
+		if err := secretManager.SaveSecrets(secrets, true, "env"); err != nil {
 			return fmt.Errorf("failed to save encrypted secrets: %w", err)
 		}
 		
@@ -107,6 +163,12 @@ The encrypted file can be safely committed to version control.`,
 		fmt.Println()
 		fmt.Printf("%s This file can now be safely committed to git\n", color.GreenString("✓"))
 		
+		if password != "" {
+			fmt.Printf("%s Share this key with your team: %s\n", 
+				color.YellowString("🔑"), 
+				color.CyanString(password))
+		}
+		
 		return nil
 	},
 }
@@ -114,7 +176,21 @@ The encrypted file can be safely committed to version control.`,
 var secretsDecryptCmd = &cobra.Command{
 	Use:   "decrypt",
 	Short: "Decrypt and show secrets",
+	Long: `Decrypt and display secrets (values are masked for security).
+	
+Examples:
+  mah config secrets decrypt                    # Use MAH_MASTER_KEY env var
+  mah config secrets decrypt -p "your-key"     # Use provided key directly`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		password, _ := cmd.Flags().GetString("password")
+		
+		// Set master key temporarily if password provided
+		if password != "" {
+			if err := os.Setenv("MAH_MASTER_KEY", password); err != nil {
+				return fmt.Errorf("failed to set master key: %w", err)
+			}
+		}
+		
 		// Get MAH directory
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
@@ -223,6 +299,14 @@ func contains(s, substr string) bool {
 }
 
 func init() {
+	// Add password flags to commands
+	secretsInitCmd.Flags().StringP("password", "p", "", "Encryption password (32+ characters recommended)")
+	secretsInitCmd.Flags().Bool("auto-encrypt", false, "Automatically encrypt using MAH_MASTER_KEY env var")
+	
+	secretsEncryptCmd.Flags().StringP("password", "p", "", "Encryption password (32+ characters recommended)")
+	
+	secretsDecryptCmd.Flags().StringP("password", "p", "", "Decryption password (32+ characters recommended)")
+	
 	secretsCmd.AddCommand(secretsInitCmd)
 	secretsCmd.AddCommand(secretsEncryptCmd)
 	secretsCmd.AddCommand(secretsDecryptCmd)

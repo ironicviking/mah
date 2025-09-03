@@ -201,15 +201,20 @@ mah nexus status production
 ### Team Collaboration
 
 ```bash
-# Team lead setup (one-time)
-mah config secrets init
+# Team lead setup (one-time) - Easy way with direct password
+TEAM_KEY="generate-secure-32-char-key"
+mah config secrets init -p "$TEAM_KEY"
 # Edit ~/.mah/secrets.yaml with actual values
-export MAH_MASTER_KEY="generate-secure-32-char-key"
-mah config secrets encrypt
+mah config secrets encrypt -p "$TEAM_KEY"
 git add ~/.mah/secrets.yaml
 git commit -m "Add encrypted team secrets"
 
-# Team members (each person)
+# Team members (each person) - Use same key
+TEAM_KEY="same-secure-32-char-key"
+mah config secrets decrypt -p "$TEAM_KEY"
+mah config validate
+
+# Or use environment variable approach
 export MAH_MASTER_KEY="same-secure-32-char-key"
 mah config secrets decrypt
 mah config validate
