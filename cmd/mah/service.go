@@ -424,6 +424,13 @@ func stopService(serviceName string) error {
 		}
 		defer srv.Disconnect()
 
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			fmt.Printf("⚠️  Warning: failed to connect to server '%s': %v\n", serverName, err)
+			continue
+		}
+
 		servers[serverName] = srv
 	}
 
@@ -480,6 +487,13 @@ func removeService(serviceName string) error {
 			continue
 		}
 		defer srv.Disconnect()
+
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			fmt.Printf("⚠️  Warning: failed to connect to server '%s': %v\n", serverName, err)
+			continue
+		}
 
 		servers[serverName] = srv
 	}
@@ -542,6 +556,13 @@ func scaleService(serviceName string, replicas int) error {
 			continue
 		}
 		defer srv.Disconnect()
+
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			fmt.Printf("⚠️  Warning: failed to connect to server '%s': %v\n", serverName, err)
+			continue
+		}
 
 		servers[serverName] = srv
 	}
