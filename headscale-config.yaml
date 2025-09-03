@@ -1,0 +1,83 @@
+---
+server_url: https://tail.xborg.cloud
+listen_addr: 0.0.0.0:8080
+metrics_listen_addr: 127.0.0.1:9090
+grpc_listen_addr: 0.0.0.0:50443
+
+# Directory to store Headscale configuration
+private_key_path: /var/lib/headscale/private.key
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
+
+# SQLite database
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+
+# DERP configuration
+derp:
+  server:
+    enabled: false
+
+# Disable update checks
+disable_check_updates: true
+
+# Ephemeral nodes will be deleted after this timeout
+ephemeral_node_inactivity_timeout: 30m
+
+# Regular nodes will be deleted after this timeout
+node_update_check_interval: 10s
+
+# Database cleanup
+db_cleanup_interval: 60s
+
+# API keys expire after
+api_key_expiration: 90d
+
+# Web UI (if you want to enable it)
+# web_ui: false
+
+# Log level
+log:
+  level: info
+
+# DNS configuration
+dns:
+  override_local_dns: true
+  nameservers:
+    global:
+      - 1.1.1.1
+      - 8.8.8.8
+  magic_dns: true
+  base_domain: xborg.local
+
+# Unix socket (not used in container)
+unix_socket: /var/run/headscale/headscale.sock
+unix_socket_permission: "0770"
+
+# TLS (handled by reverse proxy)
+tls_cert_path: ""
+tls_key_path: ""
+
+# OIDC (optional)
+# oidc:
+#   only_start_if_oidc_is_available: true
+#   issuer: "https://your-oidc-provider.com"
+#   client_id: "your-client-id"
+#   client_secret: "your-client-secret"
+
+# Logtail (optional Tailscale logging)
+logtail:
+  enabled: false
+
+# ACL policy (can be inline or file)
+acl_policy_path: ""
+
+# IP prefixes for the tailnet
+ip_prefixes:
+  - fd7a:115c:a1e0::/48
+  - 100.64.0.0/10
+
+# Randomize client port
+randomize_client_port: false
