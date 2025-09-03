@@ -54,7 +54,7 @@ type HealthCheck struct {
 func (c *ComposeFile) ToYAML() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("version: '%s'\n\n", c.Version))
+	// Note: version field is obsolete in modern Docker Compose, omitting it
 
 	// Services section
 	if len(c.Services) > 0 {

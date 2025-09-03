@@ -315,7 +315,6 @@ func (p *Provider) deployToServer(ctx context.Context, server pkg.Server, servic
 // generateComposeFile generates a docker-compose.yml file for the service
 func (p *Provider) generateComposeFile(serviceConfig *pkg.ServiceConfig) (string, error) {
 	compose := ComposeFile{
-		Version:  "3.8",
 		Services: make(map[string]ComposeService),
 	}
 
@@ -331,9 +330,7 @@ func (p *Provider) generateComposeFile(serviceConfig *pkg.ServiceConfig) (string
 
 	// Add port mappings
 	if serviceConfig.Public {
-		for _, port := range serviceConfig.Ports {
-			service.Ports = append(service.Ports, fmt.Sprintf("%d:%d", port, port))
-		}
+		service.Ports = serviceConfig.Ports
 	}
 
 	// Add restart policy
