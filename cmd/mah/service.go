@@ -180,6 +180,12 @@ func deployService(serviceName string) error {
 		}
 		defer srv.Disconnect()
 
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			return fmt.Errorf("failed to connect to server '%s': %w", serverName, err)
+		}
+
 		servers[serverName] = srv
 	}
 
@@ -240,6 +246,13 @@ func showServiceStatus(serviceName string) error {
 			continue
 		}
 		defer srv.Disconnect()
+
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			fmt.Printf("⚠️  Warning: failed to connect to server '%s': %v\n", serverName, err)
+			continue
+		}
 
 		servers[serverName] = srv
 	}
@@ -370,6 +383,13 @@ func showServiceLogs(serviceName string, follow bool) error {
 			continue
 		}
 		defer srv.Disconnect()
+
+		// Connect to the server
+		ctx := context.Background()
+		if err := srv.Connect(ctx); err != nil {
+			fmt.Printf("⚠️  Warning: failed to connect to server '%s': %v\n", serverName, err)
+			continue
+		}
 
 		servers[serverName] = srv
 	}
