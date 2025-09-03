@@ -328,6 +328,11 @@ func (p *Provider) generateComposeFile(serviceConfig *pkg.ServiceConfig) (string
 		Labels:      serviceConfig.Labels,
 	}
 
+	// Set command if specified
+	if len(serviceConfig.Command) > 0 {
+		service.Command = serviceConfig.Command
+	}
+
 	// Add port mappings
 	if serviceConfig.Public {
 		service.Ports = serviceConfig.Ports

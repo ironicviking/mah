@@ -23,7 +23,7 @@ type ComposeService struct {
 	DependsOn   []string          `yaml:"depends_on,omitempty"`
 	Labels      map[string]string `yaml:"labels,omitempty"`
 	Restart     string            `yaml:"restart,omitempty"`
-	Command     string            `yaml:"command,omitempty"`
+	Command     []string          `yaml:"command,omitempty"`
 	HealthCheck *HealthCheck      `yaml:"healthcheck,omitempty"`
 }
 
@@ -114,8 +114,11 @@ func (c *ComposeFile) ToYAML() string {
 				}
 			}
 
-			if service.Command != "" {
-				sb.WriteString(fmt.Sprintf("    command: %s\n", service.Command))
+			if len(service.Command) > 0 {
+				sb.WriteString("    command:\n")
+				for _, cmd := range service.Command {
+					sb.WriteString(fmt.Sprintf("      - \"%s\"\n", cmd))
+				}
 			}
 
 			if service.HealthCheck != nil {
