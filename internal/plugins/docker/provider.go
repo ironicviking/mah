@@ -74,7 +74,7 @@ func (p *Provider) Scale(serviceName string, replicas int) error {
 		fmt.Printf("📈 Scaling service '%s' to %d replicas on server '%s'...\n", serviceName, replicas, serverName)
 
 		// Use docker-compose scale command
-		cmd := fmt.Sprintf("cd /opt/mah/services/%s && docker-compose up -d --scale %s=%d", 
+		cmd := fmt.Sprintf("sh -c 'cd /opt/mah/services/%s && docker-compose up -d --scale %s=%d'", 
 			serviceName, serviceName, replicas)
 		
 		result, err := server.Execute(ctx, cmd, true)
@@ -111,7 +111,7 @@ func (p *Provider) Status(serviceName string) (*pkg.ServiceStatus, error) {
 	}
 
 	// Get container status using docker-compose
-	cmd := fmt.Sprintf("cd /opt/mah/services/%s && docker-compose ps --format json", serviceName)
+	cmd := fmt.Sprintf("sh -c 'cd /opt/mah/services/%s && docker-compose ps --format json'", serviceName)
 	result, err := server.Execute(ctx, cmd, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service status: %w", err)
@@ -177,7 +177,7 @@ func (p *Provider) Logs(serviceName string, follow bool) (<-chan string, error) 
 			followFlag = "-f"
 		}
 
-		cmd := fmt.Sprintf("cd /opt/mah/services/%s && docker-compose logs %s --tail=50", serviceName, followFlag)
+		cmd := fmt.Sprintf("sh -c 'cd /opt/mah/services/%s && docker-compose logs %s --tail=50'", serviceName, followFlag)
 		result, err := server.Execute(ctx, cmd, false)
 		if err != nil {
 			logChan <- fmt.Sprintf("Error getting logs: %v", err)
@@ -225,7 +225,7 @@ func (p *Provider) Remove(serviceName string) error {
 		fmt.Printf("🗑️  Removing service '%s' from server '%s'...\n", serviceName, serverName)
 
 		// Stop and remove containers
-		cmd := fmt.Sprintf("cd /opt/mah/services/%s && docker-compose down -v", serviceName)
+		cmd := fmt.Sprintf("sh -c 'cd /opt/mah/services/%s && docker-compose down -v'", serviceName)
 		result, err := server.Execute(ctx, cmd, true)
 		if err != nil {
 			return fmt.Errorf("failed to remove service from server '%s': %w", serverName, err)
@@ -290,7 +290,7 @@ func (p *Provider) deployToServer(ctx context.Context, server pkg.Server, servic
 	}
 
 	// Pull images
-	cmd = fmt.Sprintf("cd %s && docker-compose pull", serviceDir)
+	cmd = fmt.Sprintf("sh -c 'cd %s && docker-compose pull'", serviceDir)
 	result, err = server.Execute(ctx, cmd, true)
 	if err != nil {
 		return fmt.Errorf("failed to pull Docker images: %w", err)
@@ -300,7 +300,7 @@ func (p *Provider) deployToServer(ctx context.Context, server pkg.Server, servic
 	}
 
 	// Deploy service
-	cmd = fmt.Sprintf("cd %s && docker-compose up -d", serviceDir)
+	cmd = fmt.Sprintf("sh -c 'cd %s && docker-compose up -d'", serviceDir)
 	result, err = server.Execute(ctx, cmd, true)
 	if err != nil {
 		return fmt.Errorf("failed to deploy service: %w", err)
