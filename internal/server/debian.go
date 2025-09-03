@@ -49,15 +49,27 @@ func (d *DebianOperations) InstallDocker(ctx context.Context) error {
 		return fmt.Errorf("prerequisite installation failed: %s", result.Stderr)
 	}
 
-	// Add Docker's official GPG key
-	result, err = d.server.Execute(ctx, 
-		"curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg", true)
+	// Add Docker's official GPG key (broken into steps to handle sudo properly)
+	// First, download the GPG key
+	result, err = d.server.Execute(ctx, "curl -fsSL https://download.docker.com/linux/debian/gpg -o /tmp/docker.gpg", false)
 	if err != nil {
-		return fmt.Errorf("failed to add Docker GPG key: %w", err)
+		return fmt.Errorf("failed to download Docker GPG key: %w", err)
+	}
+	if result.ExitCode != 0 {
+		return fmt.Errorf("Docker GPG key download failed: %s", result.Stderr)
+	}
+	
+	// Then, install it with proper sudo permissions
+	result, err = d.server.Execute(ctx, "gpg --dearmor < /tmp/docker.gpg > /usr/share/keyrings/docker-archive-keyring.gpg", true)
+	if err != nil {
+		return fmt.Errorf("failed to install Docker GPG key: %w", err)
 	}
 	if result.ExitCode != 0 {
 		return fmt.Errorf("Docker GPG key installation failed: %s", result.Stderr)
 	}
+	
+	// Clean up temporary file
+	d.server.Execute(ctx, "rm -f /tmp/docker.gpg", false)
 
 	// Add Docker repository (Debian specific)
 	cmd := `echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null`
