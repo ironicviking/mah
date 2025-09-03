@@ -128,14 +128,14 @@ func (m *Manager) GetCurrent() (*Nexus, error) {
 
 // Switch switches to a different nexus
 func (m *Manager) Switch(name string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Validate nexus exists
+	// First validate nexus exists without holding any locks
 	_, err := m.Get(name)
 	if err != nil {
 		return fmt.Errorf("cannot switch to nexus: %w", err)
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// Update current nexus
 	if err := m.configMgr.SetCurrentNexus(name); err != nil {
