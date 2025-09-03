@@ -72,8 +72,8 @@ func (d *DebianOperations) InstallDocker(ctx context.Context) error {
 	d.server.Execute(ctx, "rm -f /tmp/docker.gpg", false)
 
 	// Add Docker repository (Debian specific)
-	cmd := `echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null`
-	result, err = d.server.Execute(ctx, cmd, true)
+	cmd := `echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`
+	result, err = d.server.Execute(ctx, cmd, false)
 	if err != nil {
 		return fmt.Errorf("failed to add Docker repository: %w", err)
 	}

@@ -259,10 +259,10 @@ func (p *Provider) deployToServer(ctx context.Context, server pkg.Server, servic
 		return fmt.Errorf("failed to create service directory: %w", err)
 	}
 
-	// Write docker-compose.yml file
+	// Write docker-compose.yml file using sudo tee to handle permissions properly
 	composeFile := fmt.Sprintf("%s/docker-compose.yml", serviceDir)
-	cmd := fmt.Sprintf("cat > %s << 'EOF'\n%s\nEOF", composeFile, composeContent)
-	result, err = server.Execute(ctx, cmd, true)
+	cmd := fmt.Sprintf("cat << 'EOF' | sudo tee %s > /dev/null\n%s\nEOF", composeFile, composeContent)
+	result, err = server.Execute(ctx, cmd, false)
 	if err != nil {
 		return fmt.Errorf("failed to write docker-compose file: %w", err)
 	}
@@ -278,8 +278,8 @@ func (p *Provider) deployToServer(ctx context.Context, server pkg.Server, servic
 		}
 
 		envFile := fmt.Sprintf("%s/.env", serviceDir)
-		cmd = fmt.Sprintf("cat > %s << 'EOF'\n%s\nEOF", envFile, envContent)
-		result, err = server.Execute(ctx, cmd, true)
+		cmd = fmt.Sprintf("cat << 'EOF' | sudo tee %s > /dev/null\n%s\nEOF", envFile, envContent)
+		result, err = server.Execute(ctx, cmd, false)
 		if err != nil {
 			return fmt.Errorf("failed to write .env file: %w", err)
 		}

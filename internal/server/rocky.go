@@ -247,8 +247,8 @@ email_to = root
 [base]
 debuglevel = 1`
 
-	// Write configuration
-	result, err = r.server.Execute(ctx, fmt.Sprintf("cat > /etc/dnf/automatic.conf << 'EOF'\n%s\nEOF", config), true)
+	// Write configuration using sudo tee to handle permissions properly
+	result, err = r.server.Execute(ctx, fmt.Sprintf("cat << 'EOF' | sudo tee /etc/dnf/automatic.conf > /dev/null\n%s\nEOF", config), false)
 	if err != nil {
 		return fmt.Errorf("failed to configure dnf-automatic: %w", err)
 	}

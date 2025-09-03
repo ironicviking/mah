@@ -72,8 +72,8 @@ func (u *UbuntuOperations) InstallDocker(ctx context.Context) error {
 	u.server.Execute(ctx, "rm -f /tmp/docker.gpg", false)
 
 	// Add Docker repository
-	cmd := `echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null`
-	result, err = u.server.Execute(ctx, cmd, true)
+	cmd := `echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`
+	result, err = u.server.Execute(ctx, cmd, false)
 	if err != nil {
 		return fmt.Errorf("failed to add Docker repository: %w", err)
 	}
