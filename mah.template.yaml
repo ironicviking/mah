@@ -1,0 +1,84 @@
+# MAH Configuration Template
+# 
+# This is a sanitized version of the configuration for version control.
+# Copy this to mah.yaml and fill in your actual values.
+# 
+# For sensitive values, either:
+# 1. Use environment variables: ${ENV_VAR_NAME}
+# 2. Store in encrypted secrets.yaml file
+# 3. Use external secret management
+#
+# DO NOT commit actual credentials to version control!
+
+# MAH Configuration File
+version: "1.0"
+project: "my-infrastructure"
+
+# Server definitions
+servers:
+  thor:
+    host: "YOUR_SERVER_IP"           # Set SERVER_HOST environment variable
+    ssh_user: "${SSH_USER}"          # Set SSH_USER environment variable  
+    ssh_key: "~/.ssh/your_key"
+    sudo: true
+    distro: "ubuntu"
+    nexus: "production"
+
+# Nexus definitions - logical groupings
+nexuses:
+  production:
+    description: "Production environment"
+    servers: ["thor"]
+    environment: "production"
+
+# Service definitions
+services:
+  blog:
+    servers: ["thor"]
+    image: "wordpress:latest"
+    domains:
+      thor: "${BLOG_DOMAIN}"         # Set BLOG_DOMAIN environment variable
+    public: true
+    environment:
+      WORDPRESS_DB_HOST: "mysql"
+      WORDPRESS_DB_PASSWORD: "${MYSQL_PASSWORD}"
+    
+  mysql:
+    servers: ["thor"]
+    image: "mysql:8"
+    internal: true
+    volumes:
+      - "mysql_data:/var/lib/mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_PASSWORD}"
+
+# Plugin configurations
+plugins:
+  dns:
+    provider: "name.com"
+    config:
+      username: ""
+      token: ""
+      
+  ssl:
+    provider: "traefik"
+    email: "${ADMIN_EMAIL}"          # Set ADMIN_EMAIL environment variable
+    config:
+      dns_challenge: true
+      dns_provider: "name.com"
+
+# Firewall rules
+firewall:
+  global:
+    - port: 22
+      protocol: tcp
+      from: "any"
+      comment: "SSH access"
+    - port: 80
+      protocol: tcp
+      from: "any"
+      comment: "HTTP traffic"
+    - port: 443
+      protocol: tcp
+      from: "any"
+      comment: "HTTPS traffic"

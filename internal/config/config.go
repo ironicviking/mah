@@ -13,10 +13,11 @@ import (
 
 // Manager handles configuration loading, validation, and management
 type Manager struct {
-	config   *Config
-	runtime  *RuntimeConfig
-	viper    *viper.Viper
-	secrets  map[string]string
+	config        *Config
+	runtime       *RuntimeConfig
+	viper         *viper.Viper
+	secrets       map[string]string
+	secretManager *SecretManager
 }
 
 // NewManager creates a new configuration manager
@@ -57,6 +58,14 @@ func (m *Manager) LoadConfig(configPath string) error {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 	
+	// Validate secrets setup
+	if m.secretManager != nil {
+		if err := m.secretManager.ValidateSecretsSetup(&config); err != nil {
+			// This is a warning, not a fatal error
+			fmt.Printf("Warning: %v\n", err)
+		}
+	}
+	
 	m.config = &config
 	return nil
 }
@@ -82,6 +91,18 @@ func (m *Manager) LoadRuntimeConfig() error {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
+	}
+	
+	// Initialize secret manager
+	secretManager, err := NewSecretManager(mahDir)
+	if err != nil {
+		return fmt.Errorf("failed to create secret manager: %w", err)
+	}
+	m.secretManager = secretManager
+	
+	// Load secrets if available
+	if secrets, err := secretManager.LoadSecrets(); err == nil {
+		m.secrets = secrets
 	}
 	
 	// Load or create runtime config

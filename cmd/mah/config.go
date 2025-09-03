@@ -78,7 +78,7 @@ var configInitCmd = &cobra.Command{
 			return fmt.Errorf("configuration file already exists: %s", configFile)
 		}
 
-		// Create sample configuration
+		// Create sample configuration with environment variables
 		sampleConfig := `# MAH Configuration File
 version: "1.0"
 project: "my-infrastructure"
@@ -86,8 +86,8 @@ project: "my-infrastructure"
 # Server definitions
 servers:
   thor:
-    host: "185.x.x.x"
-    ssh_user: "jonas"
+    host: "${SERVER_HOST}"           # Set SERVER_HOST environment variable
+    ssh_user: "${SSH_USER}"          # Set SSH_USER environment variable  
     ssh_key: "~/.ssh/id_rsa"
     sudo: true
     distro: "ubuntu"
@@ -106,7 +106,7 @@ services:
     servers: ["thor"]
     image: "wordpress:latest"
     domains:
-      thor: "blog.example.com"
+      thor: "${BLOG_DOMAIN}"         # Set BLOG_DOMAIN environment variable
     public: true
     environment:
       WORDPRESS_DB_HOST: "mysql"
@@ -131,7 +131,7 @@ plugins:
       
   ssl:
     provider: "traefik"
-    email: "admin@example.com"
+    email: "${ADMIN_EMAIL}"          # Set ADMIN_EMAIL environment variable
     config:
       dns_challenge: true
       dns_provider: "name.com"
@@ -160,7 +160,18 @@ firewall:
 		fmt.Printf("%s Created sample configuration: %s\n", 
 			color.GreenString("✓"), 
 			color.CyanString(configFile))
-		fmt.Println("Please edit the file with your actual server details and credentials.")
+		fmt.Println()
+		fmt.Printf("%s %s\n", color.YellowString("⚠️"), "This config uses environment variables for sensitive data.")
+		fmt.Println("Set these environment variables before using:")
+		fmt.Println("  - SERVER_HOST=your.server.ip")
+		fmt.Println("  - SSH_USER=your-ssh-username")  
+		fmt.Println("  - BLOG_DOMAIN=blog.example.com")
+		fmt.Println("  - ADMIN_EMAIL=admin@example.com")
+		fmt.Println("  - MYSQL_PASSWORD=secure-password")
+		fmt.Println("  - NAMECOM_USERNAME=your-namecom-username")
+		fmt.Println("  - NAMECOM_TOKEN=your-namecom-token")
+		fmt.Println()
+		fmt.Printf("Or run: %s\n", color.CyanString("mah config secrets init"))
 
 		return nil
 	},
@@ -170,4 +181,5 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configValidateCmd) 
 	configCmd.AddCommand(configInitCmd)
+	// secretsCmd is added in secrets.go
 }

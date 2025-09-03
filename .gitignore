@@ -36,3 +36,6 @@ test-*
 # Temporary files
 tmp/
 temp/
+# MAH Configuration (contains secrets)
+mah.yaml
+.mah/secrets.yaml

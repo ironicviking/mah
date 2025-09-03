@@ -42,12 +42,12 @@ Download the latest binary for your platform:
 
 ```bash
 # Linux/macOS
-curl -L https://github.com/jonas-jonas/mah/releases/latest/download/mah-linux-amd64 -o mah
+curl -L https://github.com/ironicviking/mah/releases/latest/download/mah-linux-amd64 -o mah
 chmod +x mah
 sudo mv mah /usr/local/bin/
 
 # Or build from source
-git clone https://github.com/jonas-jonas/mah.git
+git clone https://github.com/ironicviking/mah.git
 cd mah
 make build
 sudo cp build/mah /usr/local/bin/
@@ -56,16 +56,26 @@ sudo cp build/mah /usr/local/bin/
 ### Initialize Configuration
 
 ```bash
-# Create a sample configuration file
+# Create a sample configuration file (uses environment variables)
 mah config init
 
-# Edit the configuration with your server details
-vim mah.yaml
+# Set required environment variables
+export SERVER_HOST="your.server.ip"
+export SSH_USER="your-username"
+export NAMECOM_USERNAME="your-namecom-user"
+export NAMECOM_TOKEN="your-api-token"
+# ... see output for complete list
+
+# Or initialize secret management for teams
+mah config secrets init
 ```
 
 ### Basic Usage
 
 ```bash
+# Validate configuration
+mah config validate
+
 # List all nexuses
 mah nexus list
 
@@ -84,17 +94,17 @@ mah service status
 
 ## 📖 Configuration
 
-MAH uses a single `mah.yaml` file to define your entire infrastructure:
+MAH uses a single `mah.yaml` file to define your entire infrastructure. **Sensitive data is managed securely using environment variables or encrypted secrets**.
 
 ```yaml
 version: "1.0"
 project: "my-infrastructure"
 
-# Server definitions
+# Server definitions (uses environment variables for security)
 servers:
   thor:
-    host: "185.x.x.x"
-    ssh_user: "jonas"
+    host: "${SERVER_HOST}"          # Environment variable
+    ssh_user: "${SSH_USER}"         # Environment variable
     ssh_key: "~/.ssh/id_rsa"
     sudo: true
     distro: "ubuntu"
@@ -113,7 +123,7 @@ services:
     servers: ["thor"]
     image: "wordpress:latest"
     domains:
-      thor: "blog.example.com"
+      thor: "${BLOG_DOMAIN}"         # Environment variable
     public: true
     environment:
       WORDPRESS_DB_HOST: "mysql"
@@ -124,12 +134,12 @@ plugins:
   dns:
     provider: "name.com"
     config:
-      username: "${NAMECOM_USERNAME}"
-      token: "${NAMECOM_TOKEN}"
+      username: "${NAMECOM_USERNAME}"  # Environment variable
+      token: "${NAMECOM_TOKEN}"        # Environment variable
       
   ssl:
     provider: "traefik"
-    email: "admin@example.com"
+    email: "${ADMIN_EMAIL}"           # Environment variable
     config:
       dns_challenge: true
       dns_provider: "name.com"
@@ -150,6 +160,25 @@ firewall:
       from: "any"
       comment: "HTTPS traffic"
 ```
+
+### 🔐 Secret Management
+
+MAH provides secure secret management with multiple options:
+
+```bash
+# 1. Environment Variables (recommended for CI/CD)
+export SERVER_HOST="185.x.x.x"
+export NAMECOM_TOKEN="your-api-token"
+
+# 2. Encrypted Secrets (recommended for teams)
+mah config secrets init
+mah config secrets encrypt
+
+# 3. Git-safe Templates
+mah config secrets sanitize
+```
+
+See [SECURITY.md](SECURITY.md) for detailed security practices.
 
 ## 🔧 Commands
 
@@ -181,6 +210,12 @@ mah service logs <name> [-f]      # Show service logs
 mah config init                   # Create sample config
 mah config validate               # Validate configuration
 mah config show                   # Show current config
+
+# Secret Management
+mah config secrets init           # Initialize secrets management
+mah config secrets encrypt        # Encrypt secrets file
+mah config secrets decrypt        # View secrets (masked)
+mah config secrets sanitize       # Create git-safe template
 ```
 
 ## 🔌 Plugins
