@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 
+	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 )
 
@@ -53,8 +55,13 @@ func (sm *SecretManager) InitializeEncryption(keySource string) error {
 		}
 		key = []byte(keyEnv)
 	case "prompt":
-		// In a real implementation, you'd prompt for password
-		return fmt.Errorf("interactive password prompt not yet implemented")
+		fmt.Print("Enter master key for secrets encryption: ")
+		keyBytes, err := term.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return fmt.Errorf("failed to read password: %w", err)
+		}
+		fmt.Println() // Add newline after password input
+		key = keyBytes
 	case "file":
 		keyFile := filepath.Join(filepath.Dir(sm.secretsFile), ".mah-key")
 		key, err = os.ReadFile(keyFile)
