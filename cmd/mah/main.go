@@ -10,6 +10,12 @@ import (
 )
 
 var (
+	// Build-time variables set via ldflags
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+	
+	// CLI variables
 	configFile    string
 	currentNexus  string
 	allNexuses    bool
@@ -73,4 +79,17 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(serviceCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(versionCmd)
+}
+
+// versionCmd represents the version command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Show version information",
+	Long:  "Display version, build time, and git commit information for mah",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("mah version %s\n", Version)
+		fmt.Printf("Built: %s\n", BuildTime)
+		fmt.Printf("Commit: %s\n", GitCommit)
+	},
 }

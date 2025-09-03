@@ -1,6 +1,6 @@
 # MAH Build Configuration
 BINARY_NAME=mah
-VERSION?=0.1.0
+VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
 BUILD_TIME=$(shell date +%Y-%m-%d_%H:%M:%S)
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}"
