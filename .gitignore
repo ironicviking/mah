@@ -1,0 +1,38 @@
+# MAH Build Artifacts
+build/
+dist/
+*.log
+
+# Go artifacts
+*.o
+*.a
+*.so
+vendor/
+coverage.out
+
+# Configuration files with secrets
+mah.yaml
+*.env
+.env*
+
+# Runtime state
+.mah/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug files
+debug-*
+test-*
+
+# Temporary files
+tmp/
+temp/
